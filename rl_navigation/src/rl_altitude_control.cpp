@@ -1,19 +1,5 @@
-#include <mavros_msgs/AttitudeTarget.h>
-#include <ros/ros.h>
-#include <geometry_msgs/PoseStamped.h>
-#include <mavros_msgs/CommandBool.h>
-#include <mavros_msgs/SetMode.h>
-#include <mavros_msgs/State.h>
-#include <mavros_msgs/AttitudeTarget.h>
-#include <eigen3/Eigen/Core>
-#include <eigen3/Eigen/Geometry>
-#include <eigen3/Eigen/Dense>
-#include <geometry_msgs/TwistStamped.h>
-#include <iostream>
-#include <math.h>
-#include <fstream>
-#define minimum_snap_Row 9
-#define minimum_snap_Col 24
+#include "rl_altitude_control.h"
+
 void visWayPointTraj(const Eigen::Matrix<double,minimum_snap_Row,minimum_snap_Col> &polyCoeff, 
                     const Eigen::Matrix<double,minimum_snap_Row,1> &time, double t_s,
                     Eigen::Vector3d &Trajectory_pos,Eigen::Vector3d &Trajectory_vel,
@@ -22,13 +8,7 @@ void visWayPointTraj(const Eigen::Matrix<double,minimum_snap_Row,minimum_snap_Co
 
 Eigen::Matrix<double,minimum_snap_Row,minimum_snap_Col> _polyCoeff;
 Eigen::Matrix<double,minimum_snap_Row,1> _polyTime;
-struct Quaternion {
-    double w, x, y, z;
-};
 
-struct EulerAngles {
-    double roll, pitch, yaw;
-};
 
 EulerAngles ToEulerAngles(Quaternion q) {
     EulerAngles angles;
@@ -65,29 +45,21 @@ inline Eigen::Vector3d ToEigen(const geometry_msgs::Vector3 &ev)
     return tmp;
 }
 
-mavros_msgs::State current_state;
 void state_cb(const mavros_msgs::State::ConstPtr& msg){
     current_state = *msg;
 }
 
-geometry_msgs::PoseStamped local_pos_position;
-Eigen::Vector3d pos_current;
 void local_pos_cb(const geometry_msgs::PoseStamped::ConstPtr& msg){
     local_pos_position = *msg;
     pos_current = ToEigen(local_pos_position.pose.position);
 }
 
-geometry_msgs::TwistStamped local_vel_current;
-Eigen::Vector3d ver_current;
+
 void local_vel_cb(const geometry_msgs::TwistStamped::ConstPtr& msg){
     local_vel_current = *msg;
     ver_current = ToEigen(local_vel_current.twist.linear);
 }
 
-#define R_circle 2
-#define mass 1.5
-#define g 9.8
-mavros_msgs::AttitudeTarget local_attitude_target;
 void quat2eular_show(const Eigen::Quaterniond &quatf)
 {
     struct Quaternion quat_show;
@@ -107,7 +79,6 @@ Eigen::Vector4f quatMultiplication(const Eigen::Vector4f &q, const Eigen::Vector
           p(0) * q(3) - p(1) * q(2) + p(2) * q(1) + p(3) * q(0);
   return quat;
 }
-#define attctrl_tau_ 0.1
 
 Eigen::Vector3d attcontroller(const Eigen::Vector4f &att_ref, const Eigen::Vector4f &curr_att)
 {
@@ -170,10 +141,6 @@ Eigen::Matrix3d quat2RotMatrix(const Eigen::Vector4f &q){
   return rotmat;
 }
 
-double traj_omega_ = 3;
-Eigen::Vector3d traj_radial_(1,0,0);
-Eigen::Vector3d traj_axis_(0,0,1);
-Eigen::Vector3d traj_origin_(0,0,2);
 Eigen::Vector3d getPosition(double time){
     Eigen::Vector3d position;
     double theta;
@@ -190,6 +157,7 @@ Eigen::Vector3d getVelocity(double time){
     velocity = traj_omega_ * traj_axis_.cross(getPosition(time));
     return velocity;
 }
+
 Eigen::Vector3d getAcceleration(double time){
     Eigen::Vector3d acceleration;
     acceleration = traj_omega_ * traj_axis_.cross(getVelocity(time));
