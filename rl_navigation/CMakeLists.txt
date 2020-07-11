@@ -122,9 +122,7 @@ include_directories(
 )
 
 ## Declare a C++ library
-# add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/rl_navigation.cpp
-# )
+add_library(rl_lib SHARED src/rl_lib.cpp)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
@@ -154,6 +152,8 @@ target_link_libraries(${PROJECT_NAME}_node
 target_link_libraries(${PROJECT_NAME}_altitude_node
   ${catkin_LIBRARIES}
 )
+
+target_link_libraries(${PROJECT_NAME}_altitude_node  rl_lib)
 
 #############
 ## Install ##
