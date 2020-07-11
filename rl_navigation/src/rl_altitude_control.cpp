@@ -7,10 +7,21 @@
 #include <mavros_msgs/AttitudeTarget.h>
 #include <eigen3/Eigen/Core>
 #include <eigen3/Eigen/Geometry>
+#include <eigen3/Eigen/Dense>
 #include <geometry_msgs/TwistStamped.h>
 #include <iostream>
 #include <math.h>
+#include <fstream>
+#define minimum_snap_Row 9
+#define minimum_snap_Col 24
+void visWayPointTraj(const Eigen::Matrix<double,minimum_snap_Row,minimum_snap_Col> &polyCoeff, 
+                    const Eigen::Matrix<double,minimum_snap_Row,1> &time, double t_s,
+                    Eigen::Vector3d &Trajectory_pos,Eigen::Vector3d &Trajectory_vel,
+                    Eigen::Vector3d &Trajectory_acc);
 
+
+Eigen::Matrix<double,minimum_snap_Row,minimum_snap_Col> _polyCoeff;
+Eigen::Matrix<double,minimum_snap_Row,1> _polyTime;
 struct Quaternion {
     double w, x, y, z;
 };
@@ -30,8 +41,7 @@ EulerAngles ToEulerAngles(Quaternion q) {
     // pitch (y-axis rotation)
     double sinp = 2 * (q.w * q.y - q.z * q.x);
     if (std::abs(sinp) >= 1)
-        angles.pitch = std::copysign(M_PI / 2, sinp); // use 90 degrees if out of range
-    else
+        angles.pitch = std::copysign(M_PI / 2, sinp); // use 90 degrees if out of rangeTrajectory_pos,Trajectory_vel,Trajectory_acc
         angles.pitch = std::asin(sinp);
 
     // yaw (z-axis rotation)
@@ -192,11 +202,11 @@ void Circle_trajectory(const geometry_msgs::PoseStamped &pos, const ros::Time &t
     ros::Duration t = ros::Time::now() - t1;
     double t_s = t.toSec();
     // std::cout<<t_s<<"\t";
-
+    // visWayPointTraj(_polyCoeff,_polyTime,t_s,Trajectory_pos,Trajectory_vel,Trajectory_acc);
     Trajectory_pos = getPosition(t_s);
     Trajectory_vel = getVelocity(t_s);
     Trajectory_acc = getAcceleration(t_s);
-
+    // std::cout<<Trajectory_pos.transpose()<<std::endl;
     Eigen::Vector3d pos_err = pos_current - Trajectory_pos;
     Eigen::Vector3d vel_err = ver_current - Trajectory_vel;
 
@@ -264,8 +274,144 @@ int init_finished(geometry_msgs::PoseStamped pos)
     return 0;
 }
 
+Eigen::Vector3d getPosPoly( Eigen::MatrixXd polyCoeff, int k, double t )
+{
+    Eigen::Vector3d ret;
+    uint8_t _poly_num1D = 8;
+    for ( int dim = 0; dim < 3; dim++ )
+    {
+        Eigen::VectorXd coeff = (polyCoeff.row(k)).segment( dim * _poly_num1D, _poly_num1D );
+        Eigen::VectorXd time  = Eigen::VectorXd::Zero( _poly_num1D );
+        
+        for(int j = 0; j < _poly_num1D; j ++)
+        {
+            if(j==0)
+                time(j) = 1.0;
+            else
+                time(j) = pow(t, j);
+        }
+        ret(dim) = coeff.dot(time);
+        //cout << "dim:" << dim << " coeff:" << coeff << endl;
+    }
+    return ret;
+}
+
+Eigen::Vector3d getVelPoly( Eigen::MatrixXd polyCoeff, int k, double t )
+{
+    Eigen::Vector3d ret;
+    uint8_t _poly_num1D = 8;
+    for ( int dim = 0; dim < 3; dim++ )
+    {
+        Eigen::VectorXd coeff = (polyCoeff.row(k)).segment( dim * _poly_num1D, _poly_num1D );
+        Eigen::VectorXd time  = Eigen::VectorXd::Zero( _poly_num1D );
+        
+        for(int j = 0; j < _poly_num1D; j ++)
+        {
+            if(j==0)
+                time(j) = 0.0;
+            else if(j==1)
+                time(j) = 1.0;
+            else
+                time(j) = j*pow(t, j-1);
+        }
+        ret(dim) = coeff.dot(time);
+        //cout << "dim:" << dim << " coeff:" << coeff << endl;
+    }
+    return ret;
+}
+
+Eigen::Vector3d getAccPoly( Eigen::MatrixXd polyCoeff, int k, double t )
+{
+    Eigen::Vector3d ret;
+    uint8_t _poly_num1D = 8;
+    for ( int dim = 0; dim < 3; dim++ )
+    {
+        Eigen::VectorXd coeff = (polyCoeff.row(k)).segment( dim * _poly_num1D, _poly_num1D );
+        Eigen::VectorXd time  = Eigen::VectorXd::Zero( _poly_num1D );
+        
+        for(int j = 0; j < _poly_num1D; j ++)
+        {
+            if(j==0||j==1)
+                time(j) = 0.0;
+            else if(j==2)
+                time(j) = 2.0;
+            else
+                time(j) = j*(j-1)*pow(t, j-2);
+        }
+        ret(dim) = coeff.dot(time);
+        //cout << "dim:" << dim << " coeff:" << coeff << endl;
+    }
+    return ret;
+}
+
+void visWayPointTraj(const Eigen::Matrix<double,minimum_snap_Row,minimum_snap_Col> &polyCoeff, 
+                    const Eigen::Matrix<double,minimum_snap_Row,1> &time, double t_s,
+                    Eigen::Vector3d &Trajectory_pos,Eigen::Vector3d &Trajectory_vel,
+                    Eigen::Vector3d &Trajectory_acc)
+{
+    Eigen::Vector3d pos;
+    Eigen::Vector3d vel;
+    Eigen::Vector3d acc;
+    Eigen::Matrix<double,minimum_snap_Row,1> time_cut;
+    for(uint8_t i=0;i<time.size();i++)
+    {
+        if(i==0){
+            time_cut(i) = 0;
+        }
+        else{
+            time_cut(i) = time_cut(i-1)+time(i);
+        }
+    }
+    // std::cout<<time_cut<<std::endl;
+    if(t_s>time_cut(minimum_snap_Row-1))
+    {
+        Trajectory_pos = Eigen::Vector3d(0,0,2);
+        Trajectory_vel = Eigen::Vector3d::Zero();
+        Trajectory_acc = Eigen::Vector3d::Zero();
+    }
+    else
+    {
+        for(uint8_t i=0;i<minimum_snap_Row-1;i++)
+        {
+            if(t_s>=time_cut(i) && t_s < time_cut(i+1))
+            {
+                Trajectory_pos = getPosPoly(polyCoeff, i, t_s - time_cut(i));
+                Trajectory_vel = getVelPoly(polyCoeff, i, t_s - time_cut(i));
+                Trajectory_acc = getAccPoly(polyCoeff, i, t_s - time_cut(i));
+            }
+        }
+    }
+
+    // std::cout<<Trajectory_pos.transpose()<<std::endl;
+}
+
+
 int main(int argc, char **argv)
 {
+    double tmp[minimum_snap_Row][minimum_snap_Col];
+    double time_tmp[minimum_snap_Row];
+
+    std::ifstream openfile;
+    openfile.open("/home/chasing/Documents/minimum_snap/data.txt",std::ios::in);
+    if(!openfile.is_open())
+    {
+        ROS_ERROR("File open failed! Must check it, and repeated it!");
+        return 1;
+    }
+    for(uint8_t i=0;i<minimum_snap_Row;i++){
+        for(uint8_t j=0;j<minimum_snap_Col;j++){
+            openfile >> tmp[i][j];
+            _polyCoeff(i,j) = tmp[i][j];
+        }
+    }
+    for(uint8_t i = 0;i<minimum_snap_Row;i++){
+        openfile >> time_tmp[i];
+        _polyTime(i) = time_tmp[i];
+    }
+    openfile.close();
+    // visWayPointTraj(_polyCoeff,_polyTime);
+    // std::cout<<_polyCoeff<<std::endl<<_polyTime<<std::endl;
+
     uint8_t code_step = 0;
     ros::init(argc, argv, "offb_node");
     ros::NodeHandle nh;
