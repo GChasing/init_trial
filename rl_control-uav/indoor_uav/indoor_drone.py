@@ -38,12 +38,25 @@ class indoor_drone:
         self.external_pos_source = external_pos_source
         self.pos_push_thread = threading.Thread(target=self.push_external_position_loop)
 
+        # read the position and attitude data in the new thread
+        self.now_ = 0 
+        self.read_attitude_tread_lock = 1
+        self.read_attitude_thread = threading.Thread(target=self.read_attitude_data_thread_loop)
+
         self.first_in = 1            # set 1 for the produrce first step in
         self.t_begin = 0             # this is the begin time for the control loop
         self.w = np.zeros((3,1))
         self.thrust = 0
 
         #self.opti_handler = opti_track_source(['192.168.50.129', 31500])
+
+    def read_attitude_data_thread_loop(self):
+        if not self.read_attitude_tread_lock:
+            while True:
+                print(time.time()-self.now_)
+                quat_ = self.get_current_body_attitude()
+                print(quat_)
+                self.now_ = time.time()
 
     def offboard_position_control_loop(self):
         '''
@@ -194,7 +207,8 @@ class indoor_drone:
             0,
             0.0, 0.0, 0.0, 0.0,  # unused parameters for this command,
             force_mavlink1=True)
-
+        self.read_attitude_tread_lock = 1
+        self.read_attitude_thread.start()
         while True:
             self.uav_geometric_control_circle()
 
