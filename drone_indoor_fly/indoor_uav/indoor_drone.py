@@ -210,9 +210,9 @@ class indoor_drone:
         self.read_attitude_tread_lock = 1
         self.read_attitude_thread.start()
         while True:
-            time_allocal =  time.clock()
+            time_t = time.clock()
             self.uav_geometric_control_circle()
-            print(time.clock()-time_allocal)
+            print(1/(time.clock()-time_t))
 
     def offboard_to_certain_height(self, height):
         '''
@@ -316,8 +316,8 @@ class indoor_drone:
             R_des = np.hstack((xb_des.T,yb_des.T,zb_des.T))
 
             quat_des = Quaternion._from_matrix(R_des)
-            yaw,pitch,roll = Quaternion.yaw_pitch_roll(quat_des)
-            print(roll*180/3.14,pitch*180/3.14,yaw*180/3.14,self.thrust)
+           # yaw,pitch,roll = Quaternion.yaw_pitch_roll(quat_des)
+           # print(roll*180/3.14,pitch*180/3.14,yaw*180/3.14,self.thrust)
 
             self.w = self.attcontroller(quat_des,quat_current)
             self.set_attitude_target()
