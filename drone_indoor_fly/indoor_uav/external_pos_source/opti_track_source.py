@@ -40,10 +40,10 @@ class opti_track_source(ext_pos_source):
         '''
         # for local test
         #'''
-        pos_ext[0] = 1
-        pos_ext[1] = 1
-        pos_ext[2] = -0.2
-        return pos_ext
+        # pos_ext[0] = 1
+        # pos_ext[1] = 1
+        # pos_ext[2] = -0.2
+        # return pos_ext
         #'''
         # optitrack
         self.optitrack_data, self.optitrack_addr = self.socket.recvfrom(256)
@@ -53,11 +53,15 @@ class opti_track_source(ext_pos_source):
         new_position = self.optitrack_data.split(b',')
         for idx in range(6):
             new_position[idx] = float(new_position[idx])
+        
         '''
         logging.info('[MOCAP] {0} {1} {2} {3} {4} {5}'.format(
             new_position[0], new_position[1],
             new_position[2], new_position[3],
             new_position[4], new_position[5]))
+       
+        
+        print(new_position[0])
         '''
         return new_position
 
@@ -77,6 +81,7 @@ class opti_track_source(ext_pos_source):
             self.position = new_position
             self.lock_position.release()
 
+
             pos_cnt = pos_cnt + 1
             if pos_cnt < 10:
                 logging.info('[MOCAP] {0} {1} {2} {3} {4} {5}'.format(
@@ -88,7 +93,7 @@ class opti_track_source(ext_pos_source):
 
 if __name__ == '__main__':
     # OptiTrack network, own IP (used for opti to send pos feedback)
-    opti_track = opti_track_source(['192.168.50.129', 31500])
+    opti_track = opti_track_source(['192.168.50.101', 31500])
     opti_track.start()
     while True:
         opti_track.lock_position.acquire()

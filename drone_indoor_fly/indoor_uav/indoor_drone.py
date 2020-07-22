@@ -194,8 +194,8 @@ class indoor_drone:
         @ set_mode_to_offboard: switch UAV's mode to offboard, so that we can conduct position and velocity control
         '''
         logging.info('[UAV] Switch to Offboard Mode...')
-        for i in range(100):
-            self.offboard_set_target_position(0, 0, -0.5)
+        #for i in range(100):
+        #    self.offboard_set_target_position(0, 0, -0.5)
         
         self.the_connection.mav.command_long_send(
             self.the_connection.target_system,  # 1# autopilot system id
@@ -207,12 +207,12 @@ class indoor_drone:
             0,
             0.0, 0.0, 0.0, 0.0,  # unused parameters for this command,
             force_mavlink1=True)
-        self.read_attitude_tread_lock = 1
-        self.read_attitude_thread.start()
-        while True:
-            time_t = time.clock()
-            self.uav_geometric_control_circle()
-            print(1/(time.clock()-time_t))
+        #self.read_attitude_tread_lock = 1
+        #self.read_attitude_thread.start()
+        #while True:
+        #    time_t = time.clock()
+        #    self.uav_geometric_control_circle()
+        #    print(1/(time.clock()-time_t))
 
     def offboard_to_certain_height(self, height):
         '''
@@ -220,7 +220,8 @@ class indoor_drone:
         :param height: target height in m
         '''
         logging.info('[UAV] Hovering at certain height...')
-        cur_ned_pos = self.get_current_local_ned_position()
+        cur_ned_pos = [0,0,0,0,0,0]
+        #cur_ned_pos = self.get_current_local_ned_position()
         cur_ned_pos[0] = 0
         cur_ned_pos[1] = 0
         cur_ned_pos[2] = -1 * height
@@ -364,9 +365,11 @@ class indoor_drone:
     def push_external_position_loop(self):
         logging.info('[UAV] Start pushing external position to UAV...')
         while True:
+            time_temp = time.time()
             self.update_external_postion()
             self.mav_send_external_position()
             time.sleep(0.0005)
+            print(1/(time.time()-time_temp))
 
     def update_external_postion(self):
         '''

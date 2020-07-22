@@ -32,7 +32,7 @@ if __name__ == '__main__':
     # External position source init
     # OptiTrack network, own IP (used for opti to send pos feedback)
     # opti_track = opti_track_source(['192.168.0.129', 31500])
-    opti_track = opti_track_source(['127.0.0.1', 31500]) # local test
+    opti_track = opti_track_source(['192.168.50.101', 31500]) # local test
     net_source_handler = net_source(['127.0.0.1', 23245])
     # net_source_handler.set_net_source_type(type='gazebo') # gazebo simulation
     net_source_handler.set_net_source_type(type='mocap') # Use mocap transfer
