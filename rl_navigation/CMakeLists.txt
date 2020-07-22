@@ -133,6 +133,7 @@ add_library(rl_lib SHARED src/rl_lib.cpp)
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
 add_executable(${PROJECT_NAME}_node src/rl_navi.cpp)
+# add_executable(mytest_altitude_node src/rl_altitude_control.cpp)
 add_executable(${PROJECT_NAME}_altitude_node src/rl_altitude_control.cpp)
 
 ## Rename C++ executable without prefix
