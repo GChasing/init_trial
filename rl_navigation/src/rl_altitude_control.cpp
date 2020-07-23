@@ -15,7 +15,7 @@ void local_vel_cb(const geometry_msgs::TwistStamped::ConstPtr& msg){
     ver_current = ToEigen(local_vel_current.twist.linear);
 }
 
-int init_finished(geometry_msgs::PoseStamped pos)
+int start_position_check(geometry_msgs::PoseStamped pos)
 {  
     static uint16_t count = 0;
     float error_z = local_pos_position.pose.position.z - pos.pose.position.z;
@@ -33,11 +33,10 @@ int init_finished(geometry_msgs::PoseStamped pos)
     return 0;
 }
 
-int main(int argc, char **argv)
+double tmp[minimum_snap_Row][minimum_snap_Col];
+double time_tmp[minimum_snap_Row];
+int8_t read_minimum_snap_para(void)
 {
-    double tmp[minimum_snap_Row][minimum_snap_Col];
-    double time_tmp[minimum_snap_Row];
-
     std::ifstream openfile;
     openfile.open("/home/chasing/Documents/minimum_snap/data.txt",std::ios::in);
     if(!openfile.is_open())
@@ -58,8 +57,15 @@ int main(int argc, char **argv)
     openfile.close();
     // visWayPointTraj(_polyCoeff,_polyTime);
     // std::cout<<_polyCoeff<<std::endl<<_polyTime<<std::endl;
+    return 0;
+}
 
-    uint8_t code_step = 0;
+
+#define geometric_control              //if not using geometric control , please cancel this line 
+int main(int argc, char **argv)
+{
+    // read_minimum_snap_para();
+    uint8_t code_step = 1;
     ros::init(argc, argv, "offb_node");
     ros::NodeHandle nh;
 
@@ -73,7 +79,7 @@ int main(int argc, char **argv)
     ros::Subscriber local_vel_sub = nh.subscribe<geometry_msgs::TwistStamped>("mavros/local_position/velocity_local",10,local_vel_cb);
 
     //the setpoint publishing rate MUST be faster than 2Hz
-    ros::Rate rate(125.0);  //100hz
+    ros::Rate rate(250.0);  //100hz
 
     // wait for FCU connection
     while(ros::ok() && !current_state.connected){
@@ -81,11 +87,16 @@ int main(int argc, char **argv)
         rate.sleep();
     }
 
-
     geometry_msgs::PoseStamped pose;
-    pose.pose.position.x = 0;
-    pose.pose.position.y = 0;
-    pose.pose.position.z = 2;
+    #ifdef geometric_control
+        pose.pose.position.x = 1;
+        pose.pose.position.y = 0;
+        pose.pose.position.z = 1;
+    #else
+        pose.pose.position.x = 0;
+        pose.pose.position.y = 0;
+        pose.pose.position.z = 1;
+    #endif
 
     mavros_msgs::SetMode offb_set_mode;
     offb_set_mode.request.custom_mode = "OFFBOARD";
@@ -96,42 +107,32 @@ int main(int argc, char **argv)
     ros::Time last_request = ros::Time::now();
     Eigen::Vector3d EularAngle_current;
     ros::Time Circle_begin_t;
-    uint8_t Circle_T_record = 1;
-    while(ros::ok()){
-        if( current_state.mode != "OFFBOARD" &&
-            (ros::Time::now() - last_request > ros::Duration(5.0))){
-            if( set_mode_client.call(offb_set_mode) &&
-                offb_set_mode.response.mode_sent){
-                ROS_INFO("Offboard enabled");
-            }
-            last_request = ros::Time::now();
-        } else {
-            if( !current_state.armed &&
-                (ros::Time::now() - last_request > ros::Duration(5.0))){
-                if( arming_client.call(arm_cmd) &&
-                    arm_cmd.response.success){
-                    ROS_INFO("Vehicle armed");
-                }
-                last_request = ros::Time::now();
+    uint8_t Offboard_control_ = 0;
+    while(ros::ok()){    
+        if( current_state.mode == "OFFBOARD" && current_state.armed)
+        {
+            Offboard_control_ = 1;
+            if(!start_position_check(pose) && code_step)
+            {
+                // code_step = 0;
+                Circle_begin_t = ros::Time::now();
+                local_pos_pub.publish(pose);
             }
             else{
-                if(init_finished(pose) || code_step){
-                    if(Circle_T_record){
-                        Circle_begin_t = ros::Time::now();
-                        Circle_T_record = 0;
-                    }
+                code_step = 0;
+                #ifdef geometric_control
                     Circle_trajectory(local_pos_position,Circle_begin_t);
                     local_attitude_pub.publish(local_attitude_target);
-                    code_step = 1;
-                }
-                else{
-                    code_step = 0;
-                }
+                #else
+                    local_pos_pub.publish(pose);
+                #endif
             }
         }
-        if(!code_step){
-            local_pos_pub.publish(pose);
+        else{
+            Circle_begin_t = ros::Time::now();
         }
+        if(!Offboard_control_)
+            local_pos_pub.publish(pose);
         ros::spinOnce();
         rate.sleep();
     }

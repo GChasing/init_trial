@@ -21,11 +21,12 @@
 #define mass 1.5
 #define g 9.8
 #define attctrl_tau_ 0.1
-double traj_omega_ = 3;
+#define traj_T  10
+double traj_omega_ = 2*M_PI/traj_T;
 
 Eigen::Vector3d traj_radial_(1,0,0);
 Eigen::Vector3d traj_axis_(0,0,1);
-Eigen::Vector3d traj_origin_(0,0,2);
+Eigen::Vector3d traj_origin_(0,0,1);
 Eigen::Matrix<double,minimum_snap_Row,minimum_snap_Col> _polyCoeff;
 Eigen::Matrix<double,minimum_snap_Row,1> _polyTime;
 
@@ -140,6 +141,7 @@ Eigen::Vector3d rl_altitude_control::getPosition(double time){
     double theta;
 
     theta = traj_omega_* time;
+    // std::cout<<theta<<std::endl;
     position = std::cos(theta) * traj_radial_
                 + std::sin(theta) * traj_axis_.cross(traj_radial_)
                 + (1 - std::cos(theta)) * traj_axis_.dot(traj_radial_) * traj_axis_
