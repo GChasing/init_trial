@@ -21,7 +21,7 @@
 #define mass 1.5
 #define g 9.8
 #define attctrl_tau_ 0.1
-#define traj_T  10
+#define traj_T  2.5
 double traj_omega_ = 2*M_PI/traj_T;
 
 Eigen::Vector3d traj_radial_(1,0,0);
