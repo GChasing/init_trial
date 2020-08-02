@@ -1,3 +1,4 @@
+clear all;
 bag=rosbag('2020-08-01-08-29-54.bag');
 local_pos=select(bag,'Topic','/mavros/local_position/pose');
 local_pos_message=readMessages(local_pos,'DataFormat','struct');
@@ -79,7 +80,7 @@ velocity_local = select(bag,'Topic','/mavros/local_position/velocity_local');
 velocity_local_message = readMessages(velocity_local,'DataFormat','struct');
 velocity_local_vx = cellfun(@(m)double(m.Twist.Linear.X),velocity_local_message);
 velocity_local_vy = cellfun(@(m)double(m.Twist.Linear.Y),velocity_local_message);
-velocity_local_vz = cellfun(@(m)double(m.Twist.Linear.Z),veloctiy_local_message);
+velocity_local_vz = cellfun(@(m)double(m.Twist.Linear.Z),velocity_local_message);
 velocity_local_Sec = cellfun(@(m)double(m.Header.Stamp.Sec),velocity_local_message);
 velocity_local_Nsec = cellfun(@(m)double(m.Header.Stamp.Nsec),velocity_local_message);
 tmp_size_velocity_local_time = size(velocity_local_Sec);
@@ -97,4 +98,11 @@ subplot(312)
 plot(velocity_local_time,velocity_local_vy);
 subplot(313)
 plot(velocity_local_time,velocity_local_vz);
+
+%% each topic has its own frequence, for the time synchronization, the insert value method can be used for solving it
+%% function: interp1
+%% args: interp1(source_time, source_data, desire_time)
+%% return: desire_frequence_data
+%% usage: for the curve computing error, below is an example:
+vision_pos_inser = interp1(optitrack_time,vision_pos_x,time);
 
