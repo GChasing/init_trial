@@ -1,0 +1,8 @@
+prefix=/usr/local
+
+Name: rl_navigation
+Description: Description of rl_navigation
+Version: 0.0.0
+Cflags: 
+Libs: -L/usr/local/lib 
+Requires: 
