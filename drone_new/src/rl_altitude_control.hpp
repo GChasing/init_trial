@@ -104,7 +104,9 @@ void Circle_trajectory(const geometry_msgs::PoseStamped &pos, const ros::Time &t
     rotation_current = quat2RotMatrix(quat_current);
     double thrust;
 
-    double psi = 0;
+    static double psi = 0;
+    psi = traj_omega_ * (rl.time - (int)(rl.time/traj_T)*traj_T);  // has been tested for circle flip
+    // std::cout<<psi<<std::endl;
     Eigen::Vector3d a_fb = k_pos.asDiagonal() * pos_err + k_vel.asDiagonal() * vel_err;
 
     if (a_fb.norm() > 8)
