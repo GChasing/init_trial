@@ -35,8 +35,8 @@ void quat2eular_show(const Eigen::Quaterniond &quatf)
     // std::cout<<180/M_PI*euler_show.roll<<"\t"<<180/M_PI*euler_show.pitch<<"\t"<<180/M_PI*euler_show.yaw<<std::endl;
 }
 
-Eigen::Vector4f quatMultiplication(const Eigen::Vector4f &q, const Eigen::Vector4f &p) {
-   Eigen::Vector4f quat;
+Eigen::Vector4d quatMultiplication(const Eigen::Vector4d &q, const Eigen::Vector4d &p) {
+   Eigen::Vector4d quat;
   quat << p(0) * q(0) - p(1) * q(1) - p(2) * q(2) - p(3) * q(3),
           p(0) * q(1) + p(1) * q(0) - p(2) * q(3) + p(3) * q(2),
           p(0) * q(2) + p(1) * q(3) + p(2) * q(0) - p(3) * q(1),
@@ -44,8 +44,8 @@ Eigen::Vector4f quatMultiplication(const Eigen::Vector4f &q, const Eigen::Vector
   return quat;
 }
 
-Eigen::Vector4f rot2Quaternion(const Eigen::Matrix3d &R){
-  Eigen::Vector4f quat;
+Eigen::Vector4d rot2Quaternion(const Eigen::Matrix3d &R){
+  Eigen::Vector4d quat;
   double tr = R.trace();
   if (tr > 0.0) {
     double S = sqrt(tr + 1.0) * 2.0; // S=4*qw
@@ -75,7 +75,7 @@ Eigen::Vector4f rot2Quaternion(const Eigen::Matrix3d &R){
   return quat;
 }
 
-Eigen::Matrix3d quat2RotMatrix(const Eigen::Vector4f &q){
+Eigen::Matrix3d quat2RotMatrix(const Eigen::Vector4d &q){
   Eigen::Matrix3d rotmat;
   rotmat << q(0) * q(0) + q(1) * q(1) - q(2) * q(2) - q(3) * q(3),
     2 * q(1) * q(2) - 2 * q(0) * q(3),

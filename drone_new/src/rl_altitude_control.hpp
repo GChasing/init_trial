@@ -66,9 +66,9 @@ inline Eigen::Vector3d ToEigen(const geometry_msgs::Vector3 &ev)
     return tmp;
 }
 
-Eigen::Vector3d attcontroller(const Eigen::Vector4f &att_ref, const Eigen::Vector4f &curr_att)
+Eigen::Vector3d attcontroller(const Eigen::Vector4d &att_ref, const Eigen::Vector4d &curr_att)
 {
-    Eigen::Vector4f qe, q_inv, inverse;
+    Eigen::Vector4d qe, q_inv, inverse;
     Eigen::Vector3d ratecmd;
 
     inverse << 1.0, -1.0, -1.0, -1.0;
@@ -80,7 +80,39 @@ Eigen::Vector3d attcontroller(const Eigen::Vector4f &att_ref, const Eigen::Vecto
     return ratecmd;
 }
 
-void Circle_trajectory(const geometry_msgs::PoseStamped &pos, const ros::Time &t1, std::string traj_type)
+Eigen::Vector3d matrix_hat_inv(const Eigen::Matrix3d &m) {
+  Eigen::Vector3d v;
+  //TODO: Sanity checks if m is skew symmetric
+  v << m(7), m(2), m(3);
+  return v;
+}
+
+Eigen::Vector3d geometric_attcontroller(const Eigen::Vector4d &ref_att, Eigen::Vector4d &curr_att){
+  // Geometric attitude controller
+  // Attitude error is defined as in Lee, Taeyoung, Melvin Leok, and N. Harris McClamroch. "Geometric tracking control of a quadrotor UAV on SE (3)." 49th IEEE conference on decision and control (CDC). IEEE, 2010.  
+  // The original paper inputs moment commands, but for offboard control angular rate commands are sent
+
+  Eigen::Vector3d ratecmd;
+  Eigen::Matrix3d rotmat; //Rotation matrix of current atttitude
+  Eigen::Matrix3d rotmat_d; //Rotation matrix of desired attitude
+  Eigen::Vector3d zb;
+  Eigen::Vector3d error_att;
+
+  rotmat = quat2RotMatrix(curr_att);
+  rotmat_d = quat2RotMatrix(ref_att);
+
+  error_att = 0.5 * matrix_hat_inv(rotmat_d.transpose() * rotmat - rotmat.transpose() * rotmat);
+  ratecmd = (2.0 / attctrl_tau_) * error_att;
+//   ROS_INFO("lee geometric control!");
+//   rotmat = quat2RotMatrix(mavAtt_);
+//   zb = rotmat.col(2);
+//   ratecmd(3) = std::max(0.0, std::min(1.0, norm_thrust_const_ * ref_acc.dot(zb) + norm_thrust_offset_)); //Calculate thrust
+
+  return ratecmd;
+}
+
+void Circle_trajectory(const geometry_msgs::PoseStamped &pos, const ros::Time &t1, 
+                            std::string traj_type, std::string controller)
 {
     Eigen::Vector3d Trajectory_pos, Trajectory_vel, Trajectory_acc;
     ros::Duration t = ros::Time::now() - t1;
@@ -97,7 +129,7 @@ void Circle_trajectory(const geometry_msgs::PoseStamped &pos, const ros::Time &t
     k_pos << -8, -8, -10;
     k_vel << -1.5, -3.3, -3.3;
 
-    Eigen::Vector4f quat_current;
+    Eigen::Vector4d quat_current;
     quat_current << pos.pose.orientation.w, pos.pose.orientation.x,
         pos.pose.orientation.y, pos.pose.orientation.z;
     Eigen::Matrix3d rotation_current;
@@ -125,10 +157,16 @@ void Circle_trajectory(const geometry_msgs::PoseStamped &pos, const ros::Time &t
         xb_des(2), yb_des(2), zb_des(2);
     // std::cout<<thrust<<"\t"<<pos.pose.position.z<<std::endl;
 
-    Eigen::Vector4f quat_des = rot2Quaternion(R_des);
-    Eigen::Vector4f quat_curr(quat_current);
+    Eigen::Vector4d quat_des = rot2Quaternion(R_des);
+    Eigen::Vector4d quat_curr(quat_current);
+    Eigen::Vector3d ratecmd;
+    if(controller == "attitude_eth"){
+        ratecmd = attcontroller(quat_des, quat_curr);
+    }
+    else if(controller == "attitude_lee"){
+        ratecmd = geometric_attcontroller(quat_des,quat_curr);
+    }
 
-    Eigen::Vector3d ratecmd = attcontroller(quat_des, quat_curr);
     local_attitude_target.body_rate.x = ratecmd(0);
     local_attitude_target.body_rate.y = ratecmd(1);
     local_attitude_target.body_rate.z = ratecmd(2);

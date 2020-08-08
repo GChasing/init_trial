@@ -79,7 +79,9 @@ int main(int argc, char **argv)
     ros::Subscriber local_vel_sub = nh.subscribe<geometry_msgs::TwistStamped>("mavros/local_position/velocity_local",10,local_vel_cb);
 
     std::string traj_type;
+    std::string controller;
     nh.param<std::string>("/type",traj_type,"circle");
+    nh.param<std::string>("/controller",controller,"attitude_eth");
     //the setpoint publishing rate MUST be faster than 2Hz
     ros::Rate rate(250.0);  //100hz
 
@@ -125,7 +127,7 @@ int main(int argc, char **argv)
             else{
                 code_step = 0;
                 #ifdef geometric_control
-                    Circle_trajectory(local_pos_position,Circle_begin_t,traj_type);
+                    Circle_trajectory(local_pos_position,Circle_begin_t,traj_type,controller);
                     local_attitude_pub.publish(local_attitude_target);
                 #else
                     local_pos_pub.publish(pose);
