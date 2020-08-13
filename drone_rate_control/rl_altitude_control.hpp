@@ -142,15 +142,15 @@ Eigen::Vector3d rate_controller(const Eigen::Vector4d &ref_att,
 
     Eigen::Vector3d dot_proj_xb_des(-d_psi*sin(psi),d_psi*cos(psi),0);
     Eigen::Vector3d dot_f_norm = dot_a_des / a_des.norm();
-    Eigen::Vector3d dot_b3_RightTerm = dot_f_norm.cross(rotmat_d.col(2));
-    Eigen::Vector3d dot_b3 = rotmat_d.col(2).cross(dot_b3_RightTerm);
+    Eigen::Vector3d dot_b3_LefTerm = rotmat_d.col(2).cross(dot_f_norm);
+    Eigen::Vector3d dot_b3 = dot_b3_LefTerm.cross(rotmat_d.col(2));
     // std::cout<<dot_a_des.transpose()<<"\t"<<dot_b3_RightTerm.transpose()<<std::endl;
 
     Eigen::Vector3d dotb2desCROSSb3 = dot_proj_xb_des.cross(rotmat_d.col(2)) + proj_xb_des.cross(dot_b3);
     Eigen::Vector3d b2desCROSSb3 =  proj_xb_des.cross(rotmat_d.col(2));
     Eigen::Vector3d dot_b1_MiddleTerm_norm = dotb2desCROSSb3 / b2desCROSSb3.norm();
-    Eigen::Vector3d dot_b1_RightTerm = dot_b1_MiddleTerm_norm.cross(rotmat_d.col(0));
-    Eigen::Vector3d dot_b1 = rotmat_d.col(0).cross(dot_b1_RightTerm);
+    Eigen::Vector3d dot_b1_LeftTerm = rotmat_d.col(0).cross(dot_b1_MiddleTerm_norm);
+    Eigen::Vector3d dot_b1 = dot_b1_LeftTerm.cross(rotmat_d.col(0));
 
     Eigen::Vector3d dot_b2 = dot_b3.cross(rotmat_d.col(0)) + rotmat_d.col(2).cross(dot_b1);
 
@@ -161,7 +161,7 @@ Eigen::Vector3d rate_controller(const Eigen::Vector4d &ref_att,
   
     Eigen::Vector3d AngleVelocityRef = matrix_hat_inv(rotmat_d.transpose()*dot_R_des);
 
-    Error_AngleVelocity = AngleRate_current - rotmat.transpose()*rotmat_d*AngleVelocityRef;
+    Error_AngleVelocity = rotmat.transpose()*AngleRate_current - rotmat.transpose()*rotmat_d*AngleVelocityRef;
 
     Eigen::Vector3d KR,KOmega;
     KR<<KR1,KR2,KR3;
@@ -174,8 +174,8 @@ Eigen::Vector3d rate_controller(const Eigen::Vector4d &ref_att,
     if(dotOmegaRef.norm()>10)
         dotOmegaRef = (10/dotOmegaRef.norm()) * dotOmegaRef;
 
-    ratecmd = KR.asDiagonal()*error_att + KOmega.asDiagonal()*Error_AngleVelocity
-            - AngleRate_current.cross(J.asDiagonal()*AngleRate_current);
+    ratecmd = KR.asDiagonal()*error_att + KOmega.asDiagonal()*Error_AngleVelocity;
+            // - AngleRate_current.cross(J.asDiagonal()*AngleRate_current);
                 // + J.asDiagonal()*(matrix_hat(AngleRate_current)*rotmat.transpose()*rotmat_d*AngleVelocityRef - rotmat.transpose()*rotmat_d*dotOmegaRef);
     OmegaRef_last = AngleVelocityRef;
     // std::cout<<ratecmd.transpose()<<std::endl;
