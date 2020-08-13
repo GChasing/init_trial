@@ -16,6 +16,7 @@
 #include <fstream>
 #include <dynamic_reconfigure/server.h>
 #include <drone_new/dynamic_paramConfig.h>
+#include <sensor_msgs/Imu.h>
 
 #define minimum_snap_Row 9
 #define minimum_snap_Col 24
@@ -27,7 +28,7 @@ double traj_T;
 
 double traj_omega_;
 double KR1,KR2,KR3,KOmega1,KOmega2,KOmega3;
-Eigen::Vector3d traj_radial_(1, 0, 0);
+Eigen::Vector3d traj_radial_(0.75, 0, 0);
 Eigen::Vector3d traj_axis_(0, 0, 1);
 Eigen::Vector3d traj_origin_(0, 0, 1);
 Eigen::Matrix<double, minimum_snap_Row, minimum_snap_Col> _polyCoeff;
@@ -40,6 +41,7 @@ geometry_msgs::TwistStamped local_vel_current;
 geometry_msgs::TwistStamped body_vel_current;
 Eigen::Vector3d ver_current,AngleRate_current;
 mavros_msgs::AttitudeTarget local_attitude_target;
+sensor_msgs::Imu imu_data;
 
 class rl_altitude_control
 {
@@ -162,7 +164,7 @@ Eigen::Vector3d rate_controller(const Eigen::Vector4d &ref_att,
   
     Eigen::Vector3d AngleVelocityRef = matrix_hat_inv(rotmat_d.transpose()*dot_R_des);
 
-    Error_AngleVelocity = AngleRate_current;// - rotmat.transpose()*rotmat_d*AngleVelocityRef;
+    Error_AngleVelocity = AngleRate_current - rotmat.transpose()*rotmat_d*AngleVelocityRef;
     // std::cout<<"Mavros:"<<Error_AngleVelocity.transpose()<<std::endl;
 
     Eigen::Vector3d KR,KOmega;
@@ -176,16 +178,16 @@ Eigen::Vector3d rate_controller(const Eigen::Vector4d &ref_att,
     if(dotOmegaRef.norm()>10)
         dotOmegaRef = (10/dotOmegaRef.norm()) * dotOmegaRef;
 
-    ratecmd = KR.asDiagonal()*error_att + KOmega.asDiagonal()*Error_AngleVelocity;
-            // - AngleRate_current.cross(J.asDiagonal()*AngleRate_current);
-                // + J.asDiagonal()*(matrix_hat(AngleRate_current)*rotmat.transpose()*rotmat_d*AngleVelocityRef - rotmat.transpose()*rotmat_d*dotOmegaRef);
+    ratecmd = KR.asDiagonal()*error_att + KOmega.asDiagonal()*Error_AngleVelocity
+            - AngleRate_current.cross(J.asDiagonal()*AngleRate_current)
+                + J.asDiagonal()*(matrix_hat(AngleRate_current)*rotmat.transpose()*rotmat_d*AngleVelocityRef - rotmat.transpose()*rotmat_d*dotOmegaRef);
     OmegaRef_last = AngleVelocityRef;
     // std::cout<<ratecmd.transpose()<<std::endl;
     
     return ratecmd;
 }
 
-void Circle_trajectory(const geometry_msgs::PoseStamped &pos, const ros::Time &t1, 
+void Circle_trajectory(const sensor_msgs::Imu &imu_data,const geometry_msgs::PoseStamped &pos, const ros::Time &t1, 
                             std::string traj_type, std::string controller)
 {
     Eigen::Vector3d Trajectory_pos, Trajectory_vel, Trajectory_acc, Trajectory_jerk;
@@ -211,8 +213,8 @@ void Circle_trajectory(const geometry_msgs::PoseStamped &pos, const ros::Time &t
     k_vel << -1.5, -3.3, -3.3;
 
     Eigen::Vector4d quat_current;
-    quat_current << pos.pose.orientation.w, pos.pose.orientation.x,
-        pos.pose.orientation.y, pos.pose.orientation.z;
+    quat_current << imu_data.orientation.w, imu_data.orientation.x,
+        imu_data.orientation.y, imu_data.orientation.z;
     Eigen::Matrix3d rotation_current;
     rotation_current = quat2RotMatrix(quat_current);
     double thrust;
