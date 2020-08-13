@@ -1,0 +1,9 @@
+type: "circle"
+controller: "rate_controller"
+KR1: 3
+KR2: 3
+KR3: 3
+KOmega1: 0.2
+KOmega2: 0.2
+KOmega3: 0.2
+traj_T: 10
