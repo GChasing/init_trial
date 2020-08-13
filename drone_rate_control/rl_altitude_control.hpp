@@ -37,6 +37,7 @@ mavros_msgs::State current_state;
 geometry_msgs::PoseStamped local_pos_position;
 Eigen::Vector3d pos_current;
 geometry_msgs::TwistStamped local_vel_current;
+geometry_msgs::TwistStamped body_vel_current;
 Eigen::Vector3d ver_current,AngleRate_current;
 mavros_msgs::AttitudeTarget local_attitude_target;
 
@@ -161,7 +162,8 @@ Eigen::Vector3d rate_controller(const Eigen::Vector4d &ref_att,
   
     Eigen::Vector3d AngleVelocityRef = matrix_hat_inv(rotmat_d.transpose()*dot_R_des);
 
-    Error_AngleVelocity = rotmat.transpose()*AngleRate_current - rotmat.transpose()*rotmat_d*AngleVelocityRef;
+    Error_AngleVelocity = AngleRate_current;// - rotmat.transpose()*rotmat_d*AngleVelocityRef;
+    // std::cout<<"Mavros:"<<Error_AngleVelocity.transpose()<<std::endl;
 
     Eigen::Vector3d KR,KOmega;
     KR<<KR1,KR2,KR3;

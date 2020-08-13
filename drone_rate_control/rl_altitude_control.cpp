@@ -1,6 +1,5 @@
 #include "rl_lib.h"
 #include "rl_altitude_control.hpp"
-#include <time.h>
 
 void state_cb(const mavros_msgs::State::ConstPtr& msg){
     current_state = *msg;
@@ -14,7 +13,13 @@ void local_pos_cb(const geometry_msgs::PoseStamped::ConstPtr& msg){
 void local_vel_cb(const geometry_msgs::TwistStamped::ConstPtr& msg){
     local_vel_current = *msg;
     ver_current = ToEigen(local_vel_current.twist.linear);
-    AngleRate_current = ToEigen(local_vel_current.twist.angular); 
+    // AngleRate_current = ToEigen(local_vel_current.twist.angular); 
+}
+
+void body_vel_cb(const geometry_msgs::TwistStamped::ConstPtr& msg){
+    body_vel_current = *msg;
+    AngleRate_current = ToEigen(body_vel_current.twist.angular);//- Eigen::Vector3d(-0.001665,-0.005432,-0.000117);
+    // std::cout<<"Mavros:"<<AngleRate_current.transpose()<<std::endl;
 }
 
 int start_position_check(geometry_msgs::PoseStamped pos)
@@ -87,7 +92,7 @@ int main(int argc, char **argv)
     ros::Publisher local_thrust_pub = nh.advertise<mavros_msgs::AttitudeTarget>("mavros/setpointraw_attitude",10);
     ros::Subscriber local_pos_sub = nh.subscribe<geometry_msgs::PoseStamped>("mavros/local_position/pose",10,local_pos_cb);
     ros::Subscriber local_vel_sub = nh.subscribe<geometry_msgs::TwistStamped>("mavros/local_position/velocity_local",10,local_vel_cb);
-
+    ros::Subscriber body_vel_sub = nh.subscribe<geometry_msgs::TwistStamped>("mavros/local_position/velocity_body",10,body_vel_cb);
     // dynamic_reconfigure::Server<drone_new::dynamic_paramConfig> server;
     // dynamic_reconfigure::Server<drone_new::dynamic_paramConfig>::CallbackType f;
     // f = boost::bind(&callback,_1,_2);
@@ -145,19 +150,12 @@ int main(int argc, char **argv)
             }
             else{
                 code_step = 0;
-                clock_t s_time, e_time;
-                s_time=clock();
                 #ifdef geometric_control
                     Circle_trajectory(local_pos_position,Circle_begin_t,traj_type,controller);
                     local_attitude_pub.publish(local_attitude_target);
                 #else
                     local_pos_pub.publish(pose);
                 #endif
-                e_time =clock();
-
-                // ros::Duration time_elisps = ros::Time::now()-time_measure1;
-                // double time_out = time_elisps.toNSec();
-                std::cout<<(double)(e_time-s_time)/CLOCKS_PER_SEC * 1000<<std::endl;
             }
         }
         else{
