@@ -1,5 +1,5 @@
 clear all;
-bag=rosbag('2020-08-01-08-29-54.bag');
+bag=rosbag('2020-08-14-02-32-21.bag');
 local_pos=select(bag,'Topic','/mavros/local_position/pose');
 local_pos_message=readMessages(local_pos,'DataFormat','struct');
 pointx = cellfun(@(m)double(m.Pose.Orientation.X),local_pos_message);
