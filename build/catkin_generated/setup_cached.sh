@@ -8,6 +8,8 @@
 
 # modified environment variables
 export CMAKE_PREFIX_PATH="/home/chasing/drone/src/init_trial/build/devel:$CMAKE_PREFIX_PATH"
+export LD_LIBRARY_PATH="/home/chasing/drone/src/init_trial/build/devel/lib:$LD_LIBRARY_PATH"
+export PKG_CONFIG_PATH="/home/chasing/drone/src/init_trial/build/devel/lib/pkgconfig:$PKG_CONFIG_PATH"
 export PWD="/home/chasing/drone/src/init_trial/build"
 export ROSLISP_PACKAGE_DIRECTORIES="/home/chasing/drone/src/init_trial/build/devel/share/common-lisp"
 export ROS_PACKAGE_PATH="/home/chasing/drone/src/init_trial:$ROS_PACKAGE_PATH"

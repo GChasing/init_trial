@@ -15,6 +15,11 @@ void local_vel_cb(const geometry_msgs::TwistStamped::ConstPtr& msg){
     ver_current = ToEigen(local_vel_current.twist.linear);
 }
 
+void imu_data_cb(const sensor_msgs::Imu::ConstPtr& msg){
+    imu_data = *msg;
+    AngleRate_current = ToEigen(imu_data.angular_velocity);
+}
+
 int start_position_check(geometry_msgs::PoseStamped pos)
 {  
     static uint16_t count = 0;
@@ -35,9 +40,8 @@ int start_position_check(geometry_msgs::PoseStamped pos)
 
 double tmp[minimum_snap_Row][minimum_snap_Col];
 double time_tmp[minimum_snap_Row];
-int8_t read_minimum_snap_para(void)
-{
-    std::ifstream openfile;
+int8_t read_minimum_snap_para(void){
+     std::ifstream openfile;
     openfile.open("/home/chasing/Documents/minimum_snap/data.txt",std::ios::in);
     if(!openfile.is_open())
     {
@@ -60,6 +64,15 @@ int8_t read_minimum_snap_para(void)
     return 0;
 }
 
+// void callback(drone_new::dynamic_paramConfig &config, uint32_t level){
+//     KR1 = config.KR1;
+//     KR2 = config.KR2;
+//     KR3 = config.KR3;
+
+//     KOmega1 = config.KOmega1;
+//     KOmega2 = config.KOmega2;
+//     KOmega3 = config.KOmega3;
+// }
 
 #define geometric_control              //if not using geometric control , please cancel this line 
 int main(int argc, char **argv)
@@ -77,12 +90,29 @@ int main(int argc, char **argv)
     ros::Publisher local_thrust_pub = nh.advertise<mavros_msgs::AttitudeTarget>("mavros/setpointraw_attitude",10);
     ros::Subscriber local_pos_sub = nh.subscribe<geometry_msgs::PoseStamped>("mavros/local_position/pose",10,local_pos_cb);
     ros::Subscriber local_vel_sub = nh.subscribe<geometry_msgs::TwistStamped>("mavros/local_position/velocity_local",10,local_vel_cb);
+    ros::Subscriber imu_data_sub = nh.subscribe<sensor_msgs::Imu>("mavros/imu/data",10,imu_data_cb);
+    // dynamic_reconfigure::Server<drone_new::dynamic_paramConfig> server;
+    // dynamic_reconfigure::Server<drone_new::dynamic_paramConfig>::CallbackType f;
+    // f = boost::bind(&callback,_1,_2);
+    // server.setCallback(f);
 
     std::string traj_type;
     std::string controller;
     nh.param<std::string>("/type",traj_type,"circle");
     nh.param<std::string>("/controller",controller,"attitude_eth");
-    //the setpoint publishing rate MUST be faster than 2Hz
+    nh.param<double>("/KR1",KR1,10);
+    nh.param<double>("/KR2",KR2,10);
+    nh.param<double>("/KR3",KR3,10);
+    nh.param<double>("/KOmega1",KOmega1,0.5);
+    nh.param<double>("/KOmega2",KOmega2,0.5);
+    nh.param<double>("/KOmega3",KOmega3,0.5);
+    nh.param<double>("/traj_T",traj_T,3.0);   //repeat period
+    nh.param<double>("/k_pos1",k_pos1,-8);
+    nh.param<double>("/k_pos2",k_pos2,-8);
+    nh.param<double>("/k_pos3",k_pos3,-10);
+    nh.param<double>("/k_vel1",k_vel1,-1.5);
+    nh.param<double>("/k_vel2",k_vel2,-3.3);
+    nh.param<double>("/k_vel3",k_vel3,-3.3);
     ros::Rate rate(250.0);  //100hz
 
     // wait for FCU connection
@@ -91,13 +121,15 @@ int main(int argc, char **argv)
         rate.sleep();
     }
 
-
-
     geometry_msgs::PoseStamped pose;
     #ifdef geometric_control
-        pose.pose.position.x = 1;
+        pose.pose.position.x = 0.75;
         pose.pose.position.y = 0;
         pose.pose.position.z = 1;
+        pose.pose.orientation.w = 0;
+        pose.pose.orientation.x = 0;
+        pose.pose.orientation.y = 0;
+        pose.pose.orientation.z = 1;
     #else
         pose.pose.position.x = 0;
         pose.pose.position.y = 0;
@@ -127,7 +159,7 @@ int main(int argc, char **argv)
             else{
                 code_step = 0;
                 #ifdef geometric_control
-                    Circle_trajectory(local_pos_position,Circle_begin_t,traj_type,controller);
+                    Circle_trajectory(imu_data,local_pos_position,Circle_begin_t,traj_type,controller);
                     local_attitude_pub.publish(local_attitude_target);
                 #else
                     local_pos_pub.publish(pose);
