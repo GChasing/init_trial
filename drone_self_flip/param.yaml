@@ -1,0 +1,32 @@
+# type: "circle"
+# controller: "rate_controller"
+# KR1: 3.95
+# KR2: 3.95
+# KR3: 3.95
+# KOmega1: -0.16
+# KOmega2: -0.16
+# KOmega3: -0.16
+# traj_T: 2
+# k_pos1: -12
+# k_pos2: -12
+# k_pos3: -13
+# k_vel1: -1.7
+# k_vel2: -3.2
+# k_vel3: -3.2
+
+
+type: "circle"
+controller: "attitude_flip"
+KR1: 3.95
+KR2: 3.95
+KR3: 3.95
+KOmega1: -0.2   #0.16
+KOmega2: -0.2
+KOmega3: -0.2
+traj_T: 1.8
+k_pos1: -8
+k_pos2: -8
+k_pos3: -10
+k_vel1: -1.5
+k_vel2: -1.5
+k_vel3: -3.3
