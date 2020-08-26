@@ -1,0 +1,18 @@
+The self-flip contain five steps.
+first go up to some height which is useful for the next drop out;
+then, accelerate to the maxmium target angle rate at some time;
+third, hold the maxmium target angle for some time;
+forth, decrease the target angle rate to zero;
+fifth, recover to the position control, and find the origin point.
+
+Notice: the most important thing is to calculate the every epsoide time, which will make
+sure that the selp-filp success.
+In fact, in case that the drone excess to the vertical state, it can approach to hover 
+state and find the origin point by the position controller.
+
+This simple thought is inspired by the paper wrote by ETH students, and the code has been
+valided in the gazebo. 
+
+I'm curious about the practical flight and hope for the success! Best wishes!
+
+2020-8-26
