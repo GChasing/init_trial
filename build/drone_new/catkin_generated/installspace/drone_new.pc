@@ -1,8 +1,0 @@
-prefix=/usr/local
-
-Name: drone_new
-Description: Description of drone_new
-Version: 0.0.0
-Cflags: 
-Libs: -L/usr/local/lib 
-Requires: 

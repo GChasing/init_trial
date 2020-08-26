@@ -1,8 +1,0 @@
-prefix=/home/chasing/drone/src/init_trial/build/devel
-
-Name: rl_navigation
-Description: Description of rl_navigation
-Version: 0.0.0
-Cflags: 
-Libs: -L/home/chasing/drone/src/init_trial/build/devel/lib 
-Requires: 
